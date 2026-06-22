@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars for local use. Do not commit terraform.tfvars.
+# Replace placeholder values with your own Azure account details.
+
+subscription_id        = "00000000-0000-0000-0000-000000000000"
+resource_group_name   = "rg-azure-billing-dashboard"
+storage_account_name  = "azbilldash123456"
+location              = "eastus"
+monthly_budget_amount = 2.6
+budget_contact_emails = ["you@example.com"]
+budget_start_date     = "2026-06-01T00:00:00Z"
+budget_end_date       = "2036-06-30T00:00:00Z"

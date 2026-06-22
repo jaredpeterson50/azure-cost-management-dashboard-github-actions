@@ -1,0 +1,37 @@
+{
+  "name": "azure-billing-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "refresh:cost": "powershell -ExecutionPolicy Bypass -File scripts/refresh-azure-cost.ps1",
+    "build:azure": "npm run refresh:cost && npm run build",
+    "deploy:azure": "powershell -ExecutionPolicy Bypass -File scripts/deploy-static.ps1",
+    "configure:budget-alerts": "powershell -ExecutionPolicy Bypass -File scripts/configure-budget-alerts.ps1",
+    "stop:costly-resources": "powershell -ExecutionPolicy Bypass -File scripts/stop-costly-resources.ps1",
+    "infra:init": "terraform -chdir=infra init",
+    "infra:fmt": "terraform -chdir=infra fmt -check",
+    "infra:validate": "terraform -chdir=infra validate",
+    "infra:plan": "terraform -chdir=infra plan"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "jsdom": "^25.0.1",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}

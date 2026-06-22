@@ -1,0 +1,20 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+coverage
+*.local
+*.tsbuildinfo
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+infra/terraform.tfvars
