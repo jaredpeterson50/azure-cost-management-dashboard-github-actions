@@ -12,3 +12,7 @@ output "budget_name" {
   description = "Azure subscription budget name."
   value       = azurerm_consumption_budget_subscription.monthly_cost_guard.name
 }
+output "resource_group_name" {
+  description = "Resource group hosting the static site."
+  value       = azurerm_resource_group.dashboard.name
+}

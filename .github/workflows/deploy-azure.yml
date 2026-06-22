@@ -58,9 +58,15 @@ jobs:
       - name: Terraform apply
         run: terraform -chdir=infra apply -auto-approve tfplan
 
+      - name: Export Terraform outputs
+        shell: pwsh
+        run: |
+          $resourceGroup = terraform -chdir=infra output -raw resource_group_name
+          $storageAccount = terraform -chdir=infra output -raw storage_account_name
+          "AZURE_RESOURCE_GROUP=$resourceGroup" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "AZURE_STORAGE_ACCOUNT=$storageAccount" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "Terraform created resource group: $resourceGroup"
+          "Terraform created storage account: $storageAccount"
 
       - name: Deploy static site
-        env:
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
         run: npm run deploy:azure
