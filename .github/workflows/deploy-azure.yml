@@ -108,4 +108,4 @@ jobs:
           "Terraform resource group: $resourceGroup"
           "Terraform storage account: $storageAccount"
 
-          powershell -ExecutionPolicy Bypass -File scripts/deploy-static.ps1 -ResourceGroup $resourceGroup -StorageAccount $storageAccount
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-static.ps1 -ResourceGroup $resourceGroup -StorageAccount $storageAccount
