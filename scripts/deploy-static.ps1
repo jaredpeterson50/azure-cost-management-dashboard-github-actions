@@ -32,7 +32,7 @@ if (-not $StorageAccount) {
   throw "Storage account is required. Pass -StorageAccount or set AZURE_STORAGE_ACCOUNT."
 }
 
-Invoke-NativeCommand -ErrorMessage "Cost refresh failed." -Command { npm run refresh:cost } | Write-Host
+Invoke-NativeCommand -ErrorMessage "Cost refresh failed." -Command { pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/refresh-azure-cost.ps1 } | Write-Host
 Invoke-NativeCommand -ErrorMessage "Build failed." -Command { npm run build } | Write-Host
 
 $key = Invoke-NativeCommand -ErrorMessage "Unable to list storage account keys for '$StorageAccount' in resource group '$ResourceGroup'." -Command {
