@@ -12,7 +12,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 function Write-FallbackBillingData {
   param(
     [string]$OutputPath,
-    [string]$Reason
+    [string]$Reason,
+    [string]$PublicNote = "Azure Cost Management data is unavailable for this deployment, so the dashboard is showing fallback data."
   )
 
   $periodLabel = Get-Date -Format "MMMM yyyy"
@@ -22,7 +23,7 @@ function Write-FallbackBillingData {
     periodLabel = $periodLabel
     source = "mock"
     refreshedAt = (Get-Date).ToUniversalTime().ToString("o")
-    note = $Reason
+    note = $PublicNote
   } | ConvertTo-Json -Depth 4
 
   $outputDirectory = Split-Path -Parent $OutputPath
@@ -36,8 +37,13 @@ function Write-FallbackBillingData {
 }
 
 if (-not $SubscriptionId) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
   $accountOutput = & az account show --output json 2>&1
-  if ($LASTEXITCODE -ne 0) {
+  $accountExitCode = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorActionPreference
+
+  if ($accountExitCode -ne 0) {
     throw "Unable to read Azure account. az account show failed: $($accountOutput -join [Environment]::NewLine)"
   }
 
@@ -63,8 +69,13 @@ $query = @{
 Set-Content -LiteralPath $bodyPath -Value $query -NoNewline
 
 $uri = "https://management.azure.com/subscriptions/$SubscriptionId/providers/Microsoft.CostManagement/query?api-version=2023-11-01"
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 $resultOutput = & az rest --method post --headers Content-Type=application/json --uri $uri --body "@$bodyPath" --output json 2>&1
-if ($LASTEXITCODE -ne 0) {
+$resultExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorActionPreference
+
+if ($resultExitCode -ne 0) {
   $reason = "Azure Cost Management query failed. This subscription may not support the Cost Management query API or may need more billing history. Azure CLI output: $($resultOutput -join [Environment]::NewLine)"
 
   if ($NoFallback) {
