@@ -15,7 +15,7 @@ Run these commands locally from PowerShell. Replace placeholders before running.
 $subscriptionId = "<your-subscription-id>"
 $resourceGroup = "rg-azure-billing-dashboard"
 $appName = "github-azure-billing-dashboard"
-$githubOrgOrUser = "<your-github-user>"
+$githubOrgOrUser = "jaredpeterson50@gmail.com"
 $githubRepo = "azure-billing-dashboard"
 
 az login
