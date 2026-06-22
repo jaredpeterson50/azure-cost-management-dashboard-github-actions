@@ -5,6 +5,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 
 function Write-FallbackBillingData {
   param(
@@ -33,12 +36,12 @@ function Write-FallbackBillingData {
 }
 
 if (-not $SubscriptionId) {
-  $accountJson = az account show --output json 2>&1
+  $accountOutput = & az account show --output json 2>&1
   if ($LASTEXITCODE -ne 0) {
-    throw "Unable to read Azure account. az account show failed: $accountJson"
+    throw "Unable to read Azure account. az account show failed: $($accountOutput -join [Environment]::NewLine)"
   }
 
-  $account = $accountJson | ConvertFrom-Json
+  $account = ($accountOutput -join [Environment]::NewLine) | ConvertFrom-Json
   $SubscriptionId = $account.id
 }
 
@@ -60,9 +63,9 @@ $query = @{
 Set-Content -LiteralPath $bodyPath -Value $query -NoNewline
 
 $uri = "https://management.azure.com/subscriptions/$SubscriptionId/providers/Microsoft.CostManagement/query?api-version=2023-11-01"
-$resultJson = az rest --method post --headers Content-Type=application/json --uri $uri --body "@$bodyPath" --output json 2>&1
+$resultOutput = & az rest --method post --headers Content-Type=application/json --uri $uri --body "@$bodyPath" --output json 2>&1
 if ($LASTEXITCODE -ne 0) {
-  $reason = "Azure Cost Management query failed. This subscription may not support the Cost Management query API or may need more billing history. Azure CLI output: $resultJson"
+  $reason = "Azure Cost Management query failed. This subscription may not support the Cost Management query API or may need more billing history. Azure CLI output: $($resultOutput -join [Environment]::NewLine)"
 
   if ($NoFallback) {
     throw $reason
@@ -72,6 +75,7 @@ if ($LASTEXITCODE -ne 0) {
   exit 0
 }
 
+$resultJson = $resultOutput -join [Environment]::NewLine
 $result = $resultJson | ConvertFrom-Json
 $row = $result.properties.rows[0]
 

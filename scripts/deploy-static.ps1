@@ -4,6 +4,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 
 function Invoke-NativeCommand {
   param(
@@ -15,7 +18,7 @@ function Invoke-NativeCommand {
 
   $output = & $Command 2>&1
   if ($LASTEXITCODE -ne 0) {
-    throw "$ErrorMessage`n$output"
+    throw "$ErrorMessage`n$($output -join [Environment]::NewLine)"
   }
 
   return $output
