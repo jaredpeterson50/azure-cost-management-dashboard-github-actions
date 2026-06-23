@@ -66,6 +66,7 @@ jobs:
             terraform -chdir=infra import $Address $ResourceId
             if ($LASTEXITCODE -ne 0) {
               "Import skipped for $Address. It may not exist yet or may already be managed in this run."
+              $global:LASTEXITCODE = 0
             }
           }
 
