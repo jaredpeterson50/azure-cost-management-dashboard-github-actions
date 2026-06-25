@@ -1,35 +1,24 @@
-Terraform-Only Azure Cost Management App Deployment Guide
-Deploy with terraform and azure. Make sure you login with the default browser to github and azure.
+Azure Cost Management App Install Guide Github Actions
+This guide walks you through a deployment of the cost management web app deployment with github actions and azure. It also has a second deployment guide with terraform and azure.  This web app once deployed will reference your subscription current spend, forecast and display it on a public static webpage. This was made mostly with openAI codex. The .md files can be referenced to have an agent create its own from scratch.
+Github Actions install and Deployment
 #1. Install Required Applications
+# Core tools
 winget install --id Microsoft.AzureCLI -e
-winget install --id Hashicorp.Terraform -e
+winget install --id GitHub.cli -e
 winget install --id Git.Git -e
-winget install --id OpenJS.NodeJS.LTS -e
-winget install --id Microsoft.VisualStudioCode -e
-#2. Verify Installations Close and reopen PowerShell
-az --version
-terraform -version
-git --version
-node --version
-npm --version
-code --version
-#3. Login to Azure first in default browser then run
+#2. Login using your default browser then to the CLI
+gh auth login
 az login --use-device-code
-#4. Clone the Repository
 git clone https://github.com/jaredpeterson50/azure-billing-dashboard.git
-cd azure-billing-dashboard
-#5. Install and Test the React App Locally
-npm install
-npm test
-npm run build
-#6. Create Terraform Variables File
+cd .\azure-billing-dashboard\
+#3 Set variables, Create terraform tfvars
 $SUBSCRIPTION_ID = az account show --query id -o tsv
-$STORAGE_ACCOUNT = Read-Host "Enter globally unique storage account name, example: azbilldash343233"
+$STORAGE_ACCOUNT = Read-Host "Enter globally unique storage account name IE:storage343233"
 $EMAIL = Read-Host "Enter budget notification email"
-$MONTHLY_BUDGET = Read-Host "Enter monthly budget amount, example: 2.5"
+$MONTHLY_BUDGET = Read-Host "Enter monthly budget amount IE: 2.5"
 @"
 subscription_id        = "$SUBSCRIPTION_ID"
-location               = "eastus"
+location 		 = "eastus"
 resource_group_name    = "rg-azure-billing-dashboard"
 storage_account_name   = "$STORAGE_ACCOUNT"
 budget_contact_emails  = ["$EMAIL"]
@@ -37,21 +26,68 @@ budget_start_date      = "2026-06-01T00:00:00Z"
 budget_end_date        = "2036-06-30T00:00:00Z"
 monthly_budget_amount  = $MONTHLY_BUDGET
 "@ | Out-File -Encoding utf8 "infra/terraform.tfvars"
-#7. Validate Terraform
-terraform -chdir=infra init
-terraform -chdir=infra fmt
-terraform -chdir=infra validate
-terraform -chdir=infra plan
-terraform -chdir=infra apply
-#9. Pull budget data from azure then upload the React App to Azure Storage
-$STORAGE_ACCOUNT = terraform -chdir=infra output -raw storage_account_name
-npm run build:azure
-az storage blob upload-batch `
-  --account-name $STORAGE_ACCOUNT `
-  --destination '$web' `
-  --source dist `
-  --overwrite `
-  --auth-mode login
-#12. Destroy Resources When Finished
-terraform -chdir=infra destroy
+#4. Create App Registration and Service Principal
+# Variables
+$APP_NAME = "azure-billing-dashboard-github-cli-test"
+$ROLE = "Contributor"
+$GITHUB_OWNER = gh repo view --json owner --jq .owner.login
+$GITHUB_REPO = gh repo view --json name --jq .name
+$BRANCH = git branch --show-current
+$TENANT_ID = az account show --query tenantId -o tsv
+$SUBSCRIPTION_ID = az account show --query id -o tsv
+$REPO_FULL_NAME = "$GITHUB_OWNER/$GITHUB_REPO"
+$SUBJECT = "repo:$REPO_FULL_NAME`:ref:refs/heads/$BRANCH"
+# Create App Registration
+$APP_ID = az ad app create `
+  --display-name $APP_NAME `
+  --query appId `
+  -o tsv
+# Create Service Principal
+$SP_OBJECT_ID = az ad sp create `
+  --id $APP_ID `
+  --query id `
+  -o tsv
+# Assign Azure role
+az role assignment create `
+  --assignee-object-id $SP_OBJECT_ID `
+  --assignee-principal-type ServicePrincipal `
+  --role $ROLE `
+  --scope "/subscriptions/$SUBSCRIPTION_ID"
+# Create federated credential JSON
+$FEDERATED_CREDENTIAL = @{
+  name = "github-main"
+  issuer = "https://token.actions.githubusercontent.com"
+  subject = $SUBJECT
+  audiences = @("api://AzureADTokenExchange")
+} | ConvertTo-Json -Depth 10
+$FEDERATED_CREDENTIAL | Out-File -Encoding utf8 federated-credential.json
+# Add federated credential to App Registration
+az ad app federated-credential create `
+  --id $APP_ID `
+  --parameters federated-credential.json
 
+
+#5. Set GitHub Secrets and Variables
+gh secret set AZURE_CLIENT_ID --body $APP_ID
+gh secret set AZURE_TENANT_ID --body $TENANT_ID
+gh secret set AZURE_SUBSCRIPTION_ID --body $SUBSCRIPTION_ID
+gh secret set BUDGET_CONTACT_EMAIL --body $EMAIL
+
+gh variable set AZURE_RESOURCE_GROUP --body "rg-azure-billing-dashboard"
+gh variable set AZURE_STORAGE_ACCOUNT --body $STORAGE_ACCOUNT
+gh variable set BUDGET_START_DATE --body "2026-06-01T00:00:00Z"
+gh variable set BUDGET_END_DATE --body "2036-06-30T00:00:00Z"
+gh variable set MONTHLY_BUDGET_AMOUNT --body $MONTHLY_BUDGET
+#6. Trigger GitHub Actions Deployment
+gh workflow run "Deploy to Azure" --ref main
+#7. Monitor Deployment
+gh run watch --exit-status
+gh run list --workflow "Deploy to Azure" --limit 5
+gh run view --log
+—---------------------------------------
+Cleanup - removes the resource group, consumption budget, app registration
+az consumption budget delete --budget-name azure-billing-dashboard-monthly-budget
+az group delete `
+  --name rg-azure-billing-dashboard `
+  --yes
+az ad app delete --id $APP_ID
