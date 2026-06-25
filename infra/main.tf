@@ -45,22 +45,7 @@ resource "azurerm_storage_account" "dashboard" {
     index_document     = "index.html"
     error_404_document = "index.html"
   }
-
-  blob_properties {
-    delete_retention_policy {
-      days = 7
-    }
-
-    container_delete_retention_policy {
-      days = 7
-    }
-  }
-
   tags = local.common_tags
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "azurerm_consumption_budget_subscription" "monthly_cost_guard" {
