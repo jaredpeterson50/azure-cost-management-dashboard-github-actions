@@ -9,7 +9,7 @@ winget install --id Git.Git -e
 #2. Login using your default browser then to the CLI
 gh auth login
 az login --use-device-code
-git clone https://github.com/jaredpeterson50/azure-billing-dashboard.git
+https://github.com/jaredpeterson50/azure-cost-management-dashboard-github-actions.git
 cd .\azure-billing-dashboard\
 #3 Set variables, Create terraform tfvars
 $SUBSCRIPTION_ID = az account show --query id -o tsv
